@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>People Advisory — Dashboard de Participantes</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0e0b08;
+    --surface: #1a1410;
+    --surface2: #231c14;
+    --border: #2e2318;
+    --orange: #E8650A;
+    --orange-bright: #FF7A1A;
+    --gold: #F2A C2A;
+    --gold: #F5A623;
+    --white: #F5EFE6;
+    --muted: #8A7A68;
+    --green: #4CAF50;
+    --red: #E84040;
+    --blue: #4A9EE8;
+    --purple: #9B6EE8;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'Sora', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  .header {
+    background: linear-gradient(135deg, #1a0e05 0%, #0e0b08 60%);
+    border-bottom: 1px solid var(--border);
+    padding: 28px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(20px);
+  }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .event-badge {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .event-name {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .event-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--white);
+  }
+  .event-title span { color: var(--orange); }
+  .divider-v { width: 1px; height: 40px; background: var(--border); margin: 0 8px; }
+  .starbem-logo { height: 36px; opacity: 0.9; }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .date-badge {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+  .date-badge strong { color: var(--orange); }
+  .icp-badge {
+    background: linear-gradient(135deg, #E8650A22, #E8650A11);
+    border: 1px solid var(--orange);
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--orange-bright);
+  }
+
+  /* MAIN */
+  .main { padding: 32px 40px; max-width: 1600px; margin: 0 auto; }
+
+  /* KPIs */
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .kpi::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--orange);
+    opacity: 0.6;
+  }
+  .kpi.highlight::before { opacity: 1; background: linear-gradient(90deg, var(--orange), var(--gold)); }
+  .kpi:hover { border-color: var(--orange); }
+  .kpi-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .kpi-value {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--white);
+    line-height: 1;
+  }
+  .kpi-value.orange { color: var(--orange-bright); }
+  .kpi-value.green { color: var(--green); }
+  .kpi-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  /* CHARTS ROW */
+  .charts-row {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px;
+  }
+  .chart-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+  canvas { max-height: 180px; }
+
+  /* FILTERS */
+  .filters-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .filter-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .search-input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-family: 'Sora', sans-serif;
+    font-size: 13px;
+    color: var(--white);
+    width: 260px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-input:focus { border-color: var(--orange); }
+  .search-input::placeholder { color: var(--muted); }
+  .filter-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-family: 'Sora', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .filter-btn:hover, .filter-btn.active {
+    background: var(--orange);
+    border-color: var(--orange);
+    color: #fff;
+  }
+  .filter-select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-family: 'Sora', sans-serif;
+    font-size: 12px;
+    color: var(--white);
+    cursor: pointer;
+    outline: none;
+  }
+  .results-count {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .results-count strong { color: var(--orange-bright); }
+
+  /* TABLE */
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    background: var(--surface2);
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+    cursor: default;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(232,101,10,0.04); }
+  tbody tr.icp-match { }
+  tbody tr.icp-fail { opacity: 0.45; }
+  td {
+    padding: 12px 16px;
+    font-size: 12px;
+    vertical-align: middle;
+  }
+  .td-name { font-weight: 600; color: var(--white); font-size: 12px; }
+  .td-company {
+    font-weight: 500;
+    color: #C4A882;
+    font-size: 12px;
+  }
+  .td-cargo { color: var(--muted); font-size: 11px; }
+  .td-contact { color: #6B5E52; font-size: 11px; }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .badge-modelo {
+    background: rgba(255,255,255,0.05);
+    color: #8A7A68;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .badge-segmento {
+    background: rgba(255,255,255,0.04);
+    color: #8A7A68;
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  .badge-fat {
+    background: rgba(255,255,255,0.04);
+    color: #8A7A68;
+    border: 1px solid rgba(255,255,255,0.07);
+    font-size: 10px;
+  }
+  .badge-fat.high {
+    background: rgba(232,101,10,0.10);
+    color: #C47A3A;
+    border-color: rgba(232,101,10,0.18);
+  }
+  .badge-icp-ok {
+    background: rgba(76,175,80,0.10);
+    color: #6AAF6C;
+    border: 1px solid rgba(76,175,80,0.2);
+  }
+  .badge-icp-fail {
+    background: rgba(255,255,255,0.03);
+    color: #5A4E44;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .collab-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .collab-track {
+    width: 60px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .collab-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--orange);
+  }
+  .collab-fill.green { background: var(--green); }
+
+  /* ICP highlight row */
+  tbody tr.top-icp td.td-name { color: var(--gold); }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <div class="event-badge">
+      <div>
+        <div class="event-name">Dashboard de Participantes</div>
+        <div class="event-title">People <span>Advisory</span></div>
+      </div>
+    </div>
+    <div class="divider-v"></div>
+    <img src="/mnt/user-data/uploads/logo_starbem.png" class="starbem-logo" alt="StarBem" onerror="this.style.display='none'">
+  </div>
+  <div class="header-right">
+    <div class="date-badge">Evento: <strong>20 Mar 2026</strong></div>
+    <div class="icp-badge">🎯 ICP: +40 Colaboradores</div>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- KPIs -->
+  <div class="kpis" id="kpis"></div>
+
+  <!-- CHARTS -->
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title">Distribuição por Segmento</div>
+      <canvas id="chartSegmento"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Faturamento Anual</div>
+      <canvas id="chartFaturamento"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Cargo / Nível de Decisão</div>
+      <canvas id="chartCargo"></canvas>
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filters-bar">
+    <span class="filter-label">Filtrar:</span>
+    <input type="text" class="search-input" id="searchInput" placeholder="Buscar nome, empresa ou segmento…">
+    <button class="filter-btn active" onclick="setFilter('all', this)">Todos</button>
+    <button class="filter-btn" onclick="setFilter('icp', this)">✅ ICP (+40)</button>
+    <button class="filter-btn" onclick="setFilter('no-icp', this)">⚠ Fora do ICP</button>
+    <select class="filter-select" id="filterModelo" onchange="renderTable()">
+      <option value="">Todos os modelos</option>
+      <option value="B2B">B2B</option>
+      <option value="B2B2C">B2B2C</option>
+      <option value="B2C">B2C</option>
+      <option value="B2G">B2G</option>
+    </select>
+    <span class="results-count" id="resultsCount"></span>
+  </div>
+
+  <!-- TABLE -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Nome</th>
+          <th>Empresa</th>
+          <th>E-mail</th>
+          <th>Telefone</th>
+          <th>Cargo</th>
+          <th>Segmento</th>
+          <th>Modelo</th>
+          <th>Faturamento</th>
+          <th>Colaboradores</th>
+          <th>ICP</th>
+          <th>Local</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+const participants = [
+  { nome:"Ale Queiroz", email:"alearaujoqueiroz@gmail.com", telefone:"(11)99443-8363", empresa:"Hub Inova+", cargo:"Presidente ou CEO", segmento:"Tecnologia e Inovação", modelo:"B2B", faturamento:"Entre R$ 10 milhões e R$ 50 milhões", colaboradores:"40", local:"São Paulo" },
+  { nome:"Bruno Araujo Queiroz", email:"bruno@grupoinovamais.com.br", telefone:"11976838559", empresa:"Grupo Inova+", cargo:"Sócio ou Fundador", segmento:"Tecnologia e Inovação", modelo:"B2B", faturamento:"Entre R$ 10 milhões e R$ 50 milhões", colaboradores:"40", local:"São Paulo" },
+  { nome:"Julia Bernardinelli Lyra", email:"marketing@cemporcentolivre.com", telefone:"11944730866", empresa:"100% Livre", cargo:"Analista", segmento:"Agronegócio", modelo:"B2B", faturamento:"Entre R$ 8 milhões e R$ 10 milhões", colaboradores:"40", local:"Osasco / SP" },
+  { nome:"Glaucio Bill", email:"bill@agrobill.com.br", telefone:"19998600194", empresa:"Agrobill", cargo:"Presidente ou CEO", segmento:"Agronegócio", modelo:"B2B", faturamento:"Entre R$ 50 milhões e R$ 100 milhões", colaboradores:"40", local:"Saltinho SP" },
+  { nome:"Carlos Alberto de Lima Conte", email:"carlos.conte@c4cientifica.com.br", telefone:"14981425681", empresa:"C4 Científica", cargo:"Sócio ou Fundador", segmento:"Tecnologia e Inovação", modelo:"B2B2C", faturamento:"Entre R$ 10 milhões e R$ 50 milhões", colaboradores:"40", local:"Lençóis Paulista" },
+  { nome:"Ricardo Dias Aguilar", email:"marketing@globalvacbrasil.com.br", telefone:"11932164614", empresa:"Globalvacbrasil", cargo:"Gerente", segmento:"Indústria e Varejo", modelo:"B2B2C", faturamento:"Entre R$ 50 milhões e R$ 100 milhões", colaboradores:"100", local:"São Paulo" },
+  { nome:"Fernando Carvalho Lauria", email:"Fernando.lauria@hotmail.com", telefone:"(11)94042-3692", empresa:"Globalvac", cargo:"Gerente", segmento:"Alimentos | Bebidas", modelo:"B2B", faturamento:"Entre R$ 50 milhões e R$ 100 milhões", colaboradores:"100", local:"São Paulo" },
+  { nome:"Graziele Brunelli", email:"graziele@mahogany.com.br", telefone:"(11)99996-8320", empresa:"Mahogany", cargo:"Gerente", segmento:"Indústria de Cosméticos", modelo:"B2B2C", faturamento:"Entre R$ 1 milhão e R$ 3,6 milhões", colaboradores:"81 a 500", local:"Osasco/SP" },
+  { nome:"Pedro Vilano", email:"pvilano@outlook.com", telefone:"11975044900", empresa:"PV Company", cargo:"Sócio ou Fundador", segmento:"Metalurgia", modelo:"B2B2C", faturamento:"Entre R$ 50 milhões e R$ 100 milhões", colaboradores:"81 a 500", local:"Guarulhos" },
+  { nome:"Alex Sullivan Mazetto", email:"alexfmazetto@gmail.com", telefone:"1199586-2707", empresa:"Walljobs", cargo:"Gerente", segmento:"Tecnologia e Inovação", modelo:"B2B", faturamento:"Entre R$ 10 milhões e R$ 50 milhões", colaboradores:"60", local:"São Paulo" },
+  { nome:"Kamyar Abrarpour", email:"kamy@bykamy.com.br", telefone:"01198111-2228", empresa:"By Kamy", cargo:"Sócio ou Fundador", segmento:"E-commerce | Marketplace", modelo:"B2C", faturamento:"Entre R$ 50 milhões e R$ 100 milhões", colaboradores:"81 a 500", local:"São Paulo" },
+  { nome:"Gabriela Castro", email:"gabriela.castro@america-digital.com", telefone:"11975427562", empresa:"America Digital", cargo:"Diretor", segmento:"Marketing", modelo:"B2B2C", faturamento:"Entre R$ 10 milhões e R$ 50 milhões", colaboradores:"201 a 500", local:"São Paulo" },
+  { nome:"Juliano Lopes Delzi Ferreira", email:"julianolopes47@gmail.com", telefone:"24999890347", empresa:"Vegas Vigilância e Segurança", cargo:"Diretor", segmento:"Tecnologia e Inovação", modelo:"B2C", faturamento:"Entre R$ 10 milhões e R$ 50 milhões", colaboradores:"201 a 500", local:"Volta Redonda" },
+  { nome:"Edy Nunes", email:"dvincilav@gmail.com", telefone:"11991676767", empresa:"DVinciLab", cargo:"Sócio ou Fundador", segmento:"Tecnologia e Inovação", modelo:"B2B", faturamento:"Entre R$ 10 milhões e R$ 50 milhões", colaboradores:"49", local:"Aldeia da Serra - SP" },
+  { nome:"Renato Pereira Domene", email:"renato.pdomene@gmail.com", telefone:"11982091180", empresa:"OneSolution", cargo:"Gerente", segmento:"Tecnologia e Inovação", modelo:"B2B", faturamento:"Entre R$ 1 milhão e R$ 3,6 milhões", colaboradores:"120", local:"São Paulo - SP" },
+  { nome:"Carlos Ferreira Barbosa", email:"Carlos_fbarbosa@hotmail.com", telefone:"(11)978202460", empresa:"Ferreira / Hadassa Viagens", cargo:"Diretor", segmento:"Transporte e Mobilidade", modelo:"B2B", faturamento:"Entre R$ 3,6 milhões e R$ 6 milhões", colaboradores:"201 a 500", local:"São Paulo" },
+  { nome:"Cristiane Silva Reis Cabral", email:"CRISTIANEREIS@MOVIDA.COM.BR", telefone:"(11)98903-0376", empresa:"Movida Participações S.A.", cargo:"Vendas", segmento:"Transporte e Mobilidade", modelo:"B2B2C", faturamento:"Entre R$ 10 milhões e R$ 50 milhões", colaboradores:"Mais de 500", local:"São Paulo" },
+  { nome:"Gil Fernando Oliveira Duque Jr", email:"gilduquejunior@gmail.com", telefone:"24992967691", empresa:"Vegas Vigilância", cargo:"Diretor", segmento:"Segurança", modelo:"B2B2C", faturamento:"Entre R$ 10 milhões e R$ 50 milhões", colaboradores:"81 a 500", local:"—" },
+  { nome:"Jéssica Sinhorelli Macedo Xavier", email:"adm.pessoal@magma.ind.br", telefone:"(11)99270-3489", empresa:"Magma Ind. Têxtil", cargo:"Coordenador", segmento:"Indústria", modelo:"B2C", faturamento:"Entre R$ 10 milhões e R$ 50 milhões", colaboradores:"81 a 500", local:"São Paulo" },
+  { nome:"Fernando Nicory", email:"fernando@magma.ind.br", telefone:"11994402164", empresa:"Magma Ind. Têxtil", cargo:"Presidente ou CEO", segmento:"Indústria Têxtil e de Plásticos", modelo:"B2B", faturamento:"Mais de R$ 100 milhões", colaboradores:"81 a 500", local:"São Paulo" },
+  { nome:"Thiago Vareta", email:"thiago@team-creatif.com.br", telefone:"(11)99437-3724", empresa:"Team Creatif Design", cargo:"Presidente ou CEO", segmento:"Marketing", modelo:"B2B", faturamento:"Entre R$ 10 milhões e R$ 50 milhões", colaboradores:"81 a 500", local:"São Paulo" },
+  { nome:"Jhessica Vanessa Coutinho da Silva", email:"Contato.jhessica01@gmail.com", telefone:"19992179885", empresa:"Softpark Informática", cargo:"Gerente", segmento:"Tecnologia e Inovação", modelo:"B2G", faturamento:"Entre R$ 10 milhões e R$ 50 milhões", colaboradores:"81 a 500", local:"São Paulo" },
+  { nome:"Fernando Irineu de Souza Miguel", email:"sportflix01@gmail.com", telefone:"11951216969", empresa:"Super-Heróis", cargo:"Sócio ou Fundador", segmento:"Investimento | Financeiro", modelo:"B2B", faturamento:"Mais de R$ 100 milhões", colaboradores:"Mais de 500", local:"Jundiaí" },
+  { nome:"Marcelo Carneiro Mammana", email:"marcelomammana@gmail.com", telefone:"11944419723", empresa:"Italian Coffee", cargo:"Diretor", segmento:"Indústria", modelo:"B2B2C", faturamento:"Entre R$ 6 milhões e R$ 8 milhões", colaboradores:"50", local:"São Paulo/SP" },
+  { nome:"Arlei Alves da Silva", email:"arleisilva@rd.com.br", telefone:"11969922652", empresa:"Raia Drogasil - Dose Certa", cargo:"Presidente ou CEO", segmento:"E-commerce | Marketplace", modelo:"B2B2C", faturamento:"Entre R$ 10 milhões e R$ 50 milhões", colaboradores:"81 a 500", local:"São Paulo" },
+  { nome:"Lúcio Ferreira", email:"lucio.ferreira@andmax.com.br", telefone:"11962809607", empresa:"Andmax Locadora Comercial", cargo:"Diretor", segmento:"Locação de Equipamentos", modelo:"B2B", faturamento:"Entre R$ 10 milhões e R$ 50 milhões", colaboradores:"50", local:"Guarulhos/SP" },
+  { nome:"Gabrielle Rossi", email:"gabrielle.rossi@andmax.com.br", telefone:"11962809607", empresa:"Andmax Locadora Comercial", cargo:"Gerente", segmento:"Locação de Equipamentos", modelo:"B2B", faturamento:"Entre R$ 10 milhões e R$ 50 milhões", colaboradores:"50", local:"Guarulhos/SP" },
+  { nome:"Rafael Braganholi", email:"rafaelbraganholi@gmail.com", telefone:"19998968459", empresa:"Escola Luminova", cargo:"Sócio ou Fundador", segmento:"Educação", modelo:"B2C", faturamento:"Entre R$ 8 milhões e R$ 10 milhões", colaboradores:"48", local:"São Paulo" },
+  { nome:"Carina Beraldo", email:"carina.beraldo@gmail.com", telefone:"11950373777", empresa:"CB Business Group", cargo:"Sócio ou Fundador", segmento:"Construção Civil | Incorporadora", modelo:"B2B2C", faturamento:"Entre R$ 8 milhões e R$ 10 milhões", colaboradores:"65", local:"São Paulo" },
+  { nome:"Bruna Marsaioli Gonçalves", email:"bruna@pradogoncalves.com.br", telefone:"(19)99593-7803", empresa:"Prado Gonçalves", cargo:"Coordenador", segmento:"Imobiliária", modelo:"—", faturamento:"Entre R$ 1 milhão e R$ 3,6 milhões", colaboradores:"Mais de 100", local:"—" },
+  { nome:"Felipe Augusto Fernandes", email:"felipe.fernandes@chili.pa", telefone:"35998410720", empresa:"Chili", cargo:"Diretor", segmento:"Tecnologia e Inovação", modelo:"—", faturamento:"Entre R$ 50 milhões e R$ 100 milhões", colaboradores:"Mais de 100", local:"—" },
+  { nome:"Tiago Donnantuoni Ramos de Souza", email:"tiago@dramoscontabil.com.br", telefone:"11987833351", empresa:"D Ramos Contabilidade", cargo:"Sócio ou Fundador", segmento:"Investimento | Financeiro", modelo:"—", faturamento:"Entre R$ 6 milhões e R$ 8 milhões", colaboradores:"41 a 70", local:"—" },
+  { nome:"Daniel Juliano", email:"daniel.juliano@docnix.com.br", telefone:"(11)98138-1364", empresa:"Docnix", cargo:"Gerente", segmento:"Tecnologia e Inovação", modelo:"—", faturamento:"Entre R$ 10 milhões e R$ 50 milhões", colaboradores:"41 a 70", local:"—" },
+  { nome:"Felipe Augusto de Oliveira Mendes", email:"feliphemendez@gmail.com", telefone:"11986689880", empresa:"Innova Brasil Negócios Imobiliários", cargo:"Executivo de Vendas", segmento:"Construção Civil | Incorporadora", modelo:"—", faturamento:"Mais de R$ 100 milhões", colaboradores:"Mais de 100", local:"—" },
+  { nome:"Isabella Belini", email:"adm@wbmalimentos.com.br", telefone:"1195351-0070", empresa:"WBM Alimentos", cargo:"Analista", segmento:"Alimentos | Bebidas", modelo:"—", faturamento:"Entre R$ 3,6 milhões e R$ 6 milhões", colaboradores:"71 a 100", local:"—" },
+  { nome:"Endher Lucas Baborsa", email:"Marketing@supplytech.com.br", telefone:"11994690194", empresa:"Supplytech", cargo:"Coordenador", segmento:"Indústria", modelo:"—", faturamento:"Mais de R$ 100 milhões", colaboradores:"Mais de 100", local:"—" },
+  { nome:"Mirian Vasconcelos Gouvea", email:"supervisao.vendas@cralplast.com.br", telefone:"11986356438", empresa:"Cral Artigos para Laboratórios", cargo:"Gerente", segmento:"Saúde", modelo:"—", faturamento:"Mais de R$ 100 milhões", colaboradores:"Mais de 100", local:"—" },
+  { nome:"Talita Bispo da Silva Israel", email:"talita.bispo@azzumi.com.br", telefone:"11967985523", empresa:"Azzumi", cargo:"Gerente", segmento:"Varejo", modelo:"—", faturamento:"Mais de R$ 100 milhões", colaboradores:"Mais de 100", local:"—" },
+  { nome:"Ednilson Luiz do Nascimento", email:"ednilson@estampex.com.br", telefone:"12997151570", empresa:"CIA Metalúrgica Estampex", cargo:"Gerente", segmento:"Metalúrgica", modelo:"—", faturamento:"Entre R$ 10 milhões e R$ 50 milhões", colaboradores:"71 a 100", local:"—" },
+  { nome:"Wagner Martins Costa", email:"wagner.martins@Biz.com.br", telefone:"(11)96619-5225", empresa:"Biz Instituição de Pagamentos", cargo:"Diretor", segmento:"Investimento | Financeiro", modelo:"—", faturamento:"Entre R$ 50 milhões e R$ 100 milhões", colaboradores:"Mais de 100", local:"—" },
+  { nome:"Willes Ricardo Soares", email:"willesricardo06@gmail.com", telefone:"11986614751", empresa:"Global Editora e Distribuidora", cargo:"Gerente", segmento:"Educação", modelo:"—", faturamento:"Entre R$ 10 milhões e R$ 50 milhões", colaboradores:"41 a 70", local:"—" },
+  { nome:"Katia Costa", email:"katia.costa@infocar.com.br", telefone:"11963665801", empresa:"Infocar Tecnologia", cargo:"Gerente", segmento:"Tecnologia e Inovação", modelo:"—", faturamento:"Entre R$ 10 milhões e R$ 50 milhões", colaboradores:"Mais de 100", local:"—" },
+  { nome:"Renato Oliveira", email:"renato@natools.com.br", telefone:"11974502201", empresa:"MetLife", cargo:"Diretor", segmento:"Educação", modelo:"—", faturamento:"Mais de R$ 100 milhões", colaboradores:"Mais de 100", local:"—" },
+  { nome:"Valéria Holtsmann", email:"vholtsmann@divdesign.com.br", telefone:"1199605-4575", empresa:"Div Design — Divisórias", cargo:"Gerente", segmento:"Construção Civil | Incorporadora", modelo:"—", faturamento:"Entre R$ 10 milhões e R$ 50 milhões", colaboradores:"Mais de 100", local:"—" },
+  { nome:"André", email:"ajunqueira@soluplex.com", telefone:"11972881442", empresa:"Soluplex", cargo:"Sócio ou Fundador", segmento:"Embalagens de Papel", modelo:"B2B", faturamento:"Entre R$ 10 milhões e R$ 50 milhões", colaboradores:"40", local:"Cajamar/SP" },
+  { nome:"Tatiane Cristiane", email:"tsilva@soluplex.com", telefone:"11956390932", empresa:"Soluplex", cargo:"Coordenador", segmento:"Alimentos | Bebidas", modelo:"B2B", faturamento:"Entre R$ 10 milhões e R$ 50 milhões", colaboradores:"45", local:"Cajamar" },
+  { nome:"Jessica Coutinho", email:"contato.jhessica01@gmail.com", telefone:"19992179885", empresa:"—", cargo:"Gerente", segmento:"Tecnologia e Inovação", modelo:"B2B", faturamento:"Entre R$ 1 milhão e R$ 3,6 milhões", colaboradores:"40", local:"Indaiatuba" },
+  { nome:"Larissa", email:"larissa.lopes@primebid.com.br", telefone:"1899710-8735", empresa:"Primebid", cargo:"Gerente", segmento:"Tecnologia e Inovação", modelo:"B2B", faturamento:"Entre R$ 1 milhão e R$ 3,6 milhões", colaboradores:"49", local:"São Paulo" },
+  { nome:"Danielle Alcantara", email:"danielle.vasques@gaiofato.com.br", telefone:"13991557070", empresa:"Gaiofato Advogados", cargo:"Diretor", segmento:"Jurídico", modelo:"B2B", faturamento:"Mais de R$ 100 milhões", colaboradores:"41", local:"São Paulo" },
+  { nome:"Augusto Martins", email:"augusto.martins@gaiofato.com.br", telefone:"11982857871", empresa:"Gaiofato Advogados", cargo:"Diretor", segmento:"Jurídico", modelo:"B2B", faturamento:"Mais de R$ 100 milhões", colaboradores:"41", local:"São Paulo" },
+  { nome:"Eduardo Lopes", email:"eduardosandre@actionexec.com", telefone:"1192945197", empresa:"Action", cargo:"Sócio ou Fundador", segmento:"Investimento | Financeiro", modelo:"B2B", faturamento:"Entre R$ 1 milhão e R$ 3,6 milhões", colaboradores:"40", local:"São Paulo" },
+  { nome:"Rodrigo Alonso", email:"prodrigoalonso19@gmail.com", telefone:"1198332-7356", empresa:"Kubo New", cargo:"Sócio ou Fundador", segmento:"Tecnologia e Inovação", modelo:"B2B", faturamento:"Entre R$ 1 milhão e R$ 3,6 milhões", colaboradores:"43", local:"São Caetano do Sul" },
+  { nome:"Juliano Pacheco", email:"julianopach1997@gmail.com", telefone:"47997219649", empresa:"—", cargo:"Sócio ou Fundador", segmento:"Marketing", modelo:"—", faturamento:"Mais de R$ 100 milhões", colaboradores:"41 a 70", local:"—" },
+  { nome:"Marina Guidio", email:"marinaguidiotraboulsi@gmail.com", telefone:"11969497059", empresa:"Guidio cx / OpinaCard / Avaliai", cargo:"Sócio ou Fundador", segmento:"Customer Experience", modelo:"—", faturamento:"Mais de R$ 100 milhões", colaboradores:"41 a 70", local:"—" },
+  { nome:"Erica Teles Fontes", email:"Ericatfferreira@gmail.com", telefone:"11976015970", empresa:"Excellence", cargo:"Presidente ou CEO", segmento:"Tecnologia e Inovação", modelo:"—", faturamento:"Menos de R$ 1 milhão", colaboradores:"40", local:"—" },
+  { nome:"Ricardo Cavalcante", email:"ricardo.cavalcante44@gmail.com", telefone:"(11)992741444", empresa:"Rcell", cargo:"Sócio ou Fundador", segmento:"Redes e Telecomunicações", modelo:"—", faturamento:"Mais de R$ 100 milhões", colaboradores:"Mais de 100", local:"—" },
+  { nome:"Rafael Keidi Oishi", email:"Rafael.keidi.o@gmail.com", telefone:"11959552804", empresa:"Equilibrium Digital", cargo:"Sócio ou Fundador", segmento:"Educação", modelo:"B2B", faturamento:"Menos de R$ 1 milhão", colaboradores:"40", local:"São Paulo" },
+  { nome:"Kaueh Silva", email:"kaueh.vilella@gmail.com", telefone:"(11)98786-6756", empresa:"Hodie Semper", cargo:"Presidente ou CEO", segmento:"Imobiliária", modelo:"B2B", faturamento:"Entre R$ 3,6 milhões e R$ 6 milhões", colaboradores:"40", local:"Brooklin" },
+];
+
+// ICP check: 40+ collaborators
+function isICP(p) {
+  const c = p.colaboradores;
+  if (!c || c === '—') return false;
+  const numericMap = {
+    '40': 40, '41': 41, '43': 43, '45': 45, '48': 48, '49': 49,
+    '50': 50, '60': 60, '65': 65, '81 a 500': 81, '100': 100,
+    '120': 120, '201 a 500': 201, 'Mais de 500': 500,
+    '41 a 70': 41, '71 a 100': 71, 'Mais de 100': 100,
+    'Entre 41 a 70': 41
+  };
+  const val = numericMap[c];
+  if (val !== undefined) return val >= 40;
+  const n = parseInt(c);
+  if (!isNaN(n)) return n >= 40;
+  if (c.toLowerCase().includes('mais')) return true;
+  return false;
+}
+
+// Faturamento order
+function fatOrder(f) {
+  const map = {
+    'Menos de R$ 1 milhão': 0,
+    'Entre R$ 1 milhão e R$ 3,6 milhões': 1,
+    'Entre R$ 3,6 milhões e R$ 6 milhões': 2,
+    'Entre R$ 6 milhões e R$ 8 milhões': 3,
+    'Entre R$ 8 milhões e R$ 10 milhões': 4,
+    'Entre R$ 10 milhões e R$ 50 milhões': 5,
+    'Entre R$ 50 milhões e R$ 100 milhões': 6,
+    'Mais de R$ 100 milhões': 7,
+  };
+  return map[f] ?? -1;
+}
+
+let currentFilter = 'all';
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTable();
+}
+
+function renderKPIs() {
+  const total = participants.length;
+  const icp = participants.filter(isICP).length;
+  const pct = Math.round(icp/total*100);
+  const ceos = participants.filter(p => p.cargo.includes('Presidente') || p.cargo.includes('Fundador') || p.cargo.includes('Sócio')).length;
+  const diretores = participants.filter(p => p.cargo.includes('Diretor')).length;
+  const highFat = participants.filter(p => fatOrder(p.faturamento) >= 6).length;
+  const data = [
+    { label: 'Total de Participantes', value: total, sub: 'inscritos na lista', cls: '' },
+    { label: 'Dentro do ICP', value: icp, sub: `${pct}% do total`, cls: 'orange highlight' },
+    { label: 'C-Level / Fundadores', value: ceos, sub: 'CEOs, sócios e fundadores', cls: '' },
+    { label: 'Diretores', value: diretores, sub: 'nível de diretoria', cls: '' },
+    { label: 'Faturamento +50M', value: highFat, sub: 'acima de R$50M/ano', cls: 'green' },
+  ];
+
+  document.getElementById('kpis').innerHTML = data.map(d => `
+    <div class="kpi ${d.cls}">
+      <div class="kpi-label">${d.label}</div>
+      <div class="kpi-value ${d.cls.includes('orange')?'orange':d.cls.includes('green')?'green':''}">${d.value}</div>
+      <div class="kpi-sub">${d.sub}</div>
+    </div>
+  `).join('');
+}
+
+function renderCharts() {
+  // Segmento
+  const segCount = {};
+  participants.forEach(p => {
+    const s = p.segmento || 'Outro';
+    segCount[s] = (segCount[s]||0)+1;
+  });
+  const segSorted = Object.entries(segCount).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const colors = ['#E8650A','#F5A623','#4A9EE8','#9B6EE8','#4CAF50','#E84040','#E8B84A','#6EC6C8'];
+
+  new Chart(document.getElementById('chartSegmento'), {
+    type: 'bar',
+    data: {
+      labels: segSorted.map(([k])=>k.length>20?k.substring(0,20)+'…':k),
+      datasets: [{
+        data: segSorted.map(([,v])=>v),
+        backgroundColor: colors,
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#2e2318' }, ticks: { color: '#8A7A68', font:{family:'Sora',size:10} } },
+        y: { grid: { display: false }, ticks: { color: '#F5EFE6', font:{family:'Sora',size:10} } }
+      }
+    }
+  });
+
+  // Faturamento
+  const fatLabels = ['<1M','1-3.6M','3.6-6M','6-8M','8-10M','10-50M','50-100M','>100M'];
+  const fatData = [0,0,0,0,0,0,0,0];
+  participants.forEach(p => { const o = fatOrder(p.faturamento); if(o>=0) fatData[o]++; });
+
+  new Chart(document.getElementById('chartFaturamento'), {
+    type: 'bar',
+    data: {
+      labels: fatLabels,
+      datasets: [{
+        data: fatData,
+        backgroundColor: fatData.map((_,i) => i>=5?'#E8650A':'#2e2318'),
+        borderColor: fatData.map((_,i) => i>=5?'#FF7A1A':'#3e3328'),
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#8A7A68', font:{family:'Sora',size:9} } },
+        y: { grid: { color: '#2e2318' }, ticks: { color: '#8A7A68', font:{family:'Sora',size:10} } }
+      }
+    }
+  });
+
+  // Cargo
+  const cargoMap = { 'C-Level / CEO': 0, 'Sócio / Fundador': 0, 'Diretor': 0, 'Gerente': 0, 'Coordenador': 0, 'Outros': 0 };
+  participants.forEach(p => {
+    const c = p.cargo;
+    if (c.includes('Presidente') || c.includes('CEO')) cargoMap['C-Level / CEO']++;
+    else if (c.includes('Sócio') || c.includes('Fundador')) cargoMap['Sócio / Fundador']++;
+    else if (c.includes('Diretor')) cargoMap['Diretor']++;
+    else if (c.includes('Gerente')) cargoMap['Gerente']++;
+    else if (c.includes('Coordenador')) cargoMap['Coordenador']++;
+    else cargoMap['Outros']++;
+  });
+
+  new Chart(document.getElementById('chartCargo'), {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(cargoMap),
+      datasets: [{
+        data: Object.values(cargoMap),
+        backgroundColor: ['#E8650A','#F5A623','#4A9EE8','#9B6EE8','#4CAF50','#6B6B6B'],
+        borderColor: '#1a1410',
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: '#8A7A68', font:{family:'Sora',size:10}, padding: 10, boxWidth: 10 }
+        }
+      },
+      cutout: '55%',
+    }
+  });
+}
+
+function collabBarWidth(c) {
+  const map = { '40':5,'41':6,'43':6,'45':7,'48':7,'49':8,'50':8,'60':10,'65':11,
+    '81 a 500':20,'100':18,'120':22,'201 a 500':45,'Mais de 500':100,'41 a 70':12,
+    '71 a 100':18,'Mais de 100':25,'Entre 41 a 70':12 };
+  return map[c] ?? 5;
+}
+
+function renderTable() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const modeloFilter = document.getElementById('filterModelo').value;
+
+  let data = participants.filter(p => {
+    const matchSearch = !search ||
+      p.nome.toLowerCase().includes(search) ||
+      p.empresa.toLowerCase().includes(search) ||
+      p.segmento.toLowerCase().includes(search);
+    const matchModelo = !modeloFilter || p.modelo === modeloFilter;
+    const icp = isICP(p);
+    const matchICP = currentFilter === 'all' || (currentFilter === 'icp' && icp) || (currentFilter === 'no-icp' && !icp);
+    return matchSearch && matchModelo && matchICP;
+  });
+
+  document.getElementById('resultsCount').innerHTML = `<strong>${data.length}</strong> participantes encontrados`;
+
+  const fatShort = f => {
+    if (!f || f === '—') return '—';
+    const m = { 'Menos de R$ 1 milhão':'<R$1M', 'Entre R$ 1 milhão e R$ 3,6 milhões':'1-3.6M',
+      'Entre R$ 3,6 milhões e R$ 6 milhões':'3.6-6M','Entre R$ 6 milhões e R$ 8 milhões':'6-8M',
+      'Entre R$ 8 milhões e R$ 10 milhões':'8-10M','Entre R$ 10 milhões e R$ 50 milhões':'10-50M',
+      'Entre R$ 50 milhões e R$ 100 milhões':'50-100M','Mais de R$ 100 milhões':'>R$100M' };
+    return m[f] || f;
+  };
+
+  document.getElementById('tableBody').innerHTML = data.map((p, i) => {
+    const icp = isICP(p);
+    const barW = collabBarWidth(p.colaboradores);
+    const isHighFat = fatOrder(p.faturamento) >= 6;
+    return `
+    <tr class="${icp ? 'icp-match' : 'icp-fail'} ${isHighFat && icp ? 'top-icp' : ''}">
+      <td style="color:var(--muted);font-size:11px">${i+1}</td>
+      <td class="td-name">${p.nome}</td>
+      <td class="td-company">${p.empresa}</td>
+      <td class="td-contact">${p.email || '—'}</td>
+      <td class="td-contact">${p.telefone || '—'}</td>
+      <td class="td-cargo">${p.cargo}</td>
+      <td><span class="badge badge-segmento">${p.segmento.length>22?p.segmento.substring(0,22)+'…':p.segmento}</span></td>
+      <td><span class="badge badge-modelo">${p.modelo}</span></td>
+      <td><span class="badge badge-fat ${isHighFat?'high':''}">${fatShort(p.faturamento)}</span></td>
+      <td>
+        <div class="collab-bar">
+          <div class="collab-track"><div class="collab-fill" style="width:${Math.min(barW,100)}%"></div></div>
+          <span style="font-size:11px;color:var(--muted)">${p.colaboradores}</span>
+        </div>
+      </td>
+      <td><span class="badge ${icp?'badge-icp-ok':'badge-icp-fail'}">${icp?'✓ ICP':'✗ Fora'}</span></td>
+      <td style="color:var(--muted);font-size:11px">${p.local || '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+document.getElementById('searchInput').addEventListener('input', renderTable);
+
+renderKPIs();
+renderCharts();
+renderTable();
+</script>
+</body>
+</html>
