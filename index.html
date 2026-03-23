@@ -38,7 +38,7 @@ body{background:var(--bg);color:var(--white);font-family:'Sora',sans-serif;min-h
 .main{padding:28px 40px;max-width:1600px;margin:0 auto;}
 
 /* ── KPI ROWS ── */
-.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:10px;}
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:10px;}
 .kpis-icp{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px;}
 .kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;position:relative;overflow:hidden;transition:border-color 0.2s;}
 .kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--orange);opacity:0.5;}
@@ -156,6 +156,7 @@ td{padding:10px 13px;font-size:11px;vertical-align:middle;}
   canvas{max-height:200px;}
   .dims-grid{grid-template-columns:repeat(3,1fr);}
   .insights-grid{grid-template-columns:1fr 1fr;}
+  .kpis{grid-template-columns:repeat(3,1fr);}
 }
 @media(max-width:1024px){
   .header{padding:16px 20px;}
@@ -536,7 +537,17 @@ function renderKPIs(){
   const clevel=participants.filter(p=>/Presidente|CEO|Sócio|Fundador/.test(p.cargo||'')).length;
   const fat50=participants.filter(p=>fatOrder(p.faturamento)>=6).length;
   const taxa=Math.round(presentes/total*100);
-  // ICP presentes: 27 confirmado, ICP total da planilha = 61
+
+  // Empresas únicas — calculado via JS
+  const normalize=e=>(e||'').trim().toUpperCase();
+  const invalidos=['—','','NAN'];
+  const todasEmpresas=new Set(participants.map(p=>normalize(p.empresa)).filter(e=>!invalidos.includes(e)));
+  const empresasPresentes=new Set(participants.filter(p=>p.presente).map(p=>normalize(p.empresa)).filter(e=>!invalidos.includes(e)));
+  const totalEmpresas=todasEmpresas.size;
+  const empPresentes=empresasPresentes.size;
+  const taxaEmp=Math.round(empPresentes/totalEmpresas*100);
+
+  // ICP presentes: 27 confirmado
   const icpPresentes=27;
   const icpAusentes=icp-icpPresentes;
   const pctIcpPres=Math.round(icpPresentes/presentes*100);
@@ -544,11 +555,12 @@ function renderKPIs(){
   const icpClevel=participants.filter(p=>isICP(p.colaboradores)&&/Presidente|CEO|Sócio|Fundador/.test(p.cargo||'')).length;
 
   document.getElementById('kpis').innerHTML=[
-    {l:'Total Convidados',v:total,s:'lista completa',c:'',vc:''},
-    {l:'Presentes no Evento',v:presentes,s:`${taxa}% de comparecimento`,c:'hl',vc:'o'},
-    {l:'Total ICP (+40 colab)',v:icp,s:`${Math.round(icp/total*100)}% dos convidados`,c:'',vc:''},
+    {l:'Pessoas Convidadas',v:total,s:'total de inscritos',c:'',vc:''},
+    {l:'Pessoas Presentes',v:presentes,s:`${taxa}% de comparecimento`,c:'hl',vc:'o'},
+    {l:'Empresas Convidadas',v:totalEmpresas,s:'empresas únicas na lista',c:'',vc:''},
+    {l:'Empresas Presentes',v:empPresentes,s:`${taxaEmp}% das empresas compareceram`,c:'',vc:'g'},
     {l:'C-Level / Fundadores',v:clevel,s:'CEOs, sócios e fundadores',c:'',vc:''},
-    {l:'Faturamento +R$50M',v:fat50,s:'acima de R$50M/ano',c:'',vc:'g'},
+    {l:'Faturamento +R$50M',v:fat50,s:'acima de R$50M/ano',c:'',vc:''},
   ].map(d=>`<div class="kpi ${d.c}"><div class="kpi-label">${d.l}</div><div class="kpi-value ${d.vc}">${d.v}</div><div class="kpi-sub">${d.s}</div></div>`).join('');
 
   document.getElementById('kpisIcp').innerHTML=[
